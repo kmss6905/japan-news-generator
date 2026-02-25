@@ -50,11 +50,17 @@ brew install pango glib
 
 ### Python 패키지
 
+방법 1 (Python 직접 실행) 사용 시:
 ```bash
 pip install anthropic youtube-transcript-api python-dotenv weasyprint
 ```
 
-### 환경변수 설정
+방법 2 (Claude Code 스킬) 사용 시 — weasyprint, anthropic 불필요:
+```bash
+pip install youtube-transcript-api weasyprint
+```
+
+### 환경변수 설정 (방법 1만 해당)
 
 ```bash
 cp .env.example .env
@@ -65,25 +71,59 @@ cp .env.example .env
 
 ## 사용법
 
-### 기본 실행
+두 가지 방법을 지원합니다. **API 키가 없다면 방법 2 (Claude Code 스킬)** 를 사용하세요.
+
+---
+
+### 방법 1: Python 직접 실행 (Anthropic API 키 필요)
+
+#### 기본 실행
 
 ```bash
 DYLD_LIBRARY_PATH=/opt/homebrew/lib python3 main.py https://www.youtube.com/watch?v=jOnVwFXTQG8
 ```
 
-### 출력 경로 지정
+#### 출력 경로 지정
 
 ```bash
 DYLD_LIBRARY_PATH=/opt/homebrew/lib python3 main.py https://www.youtube.com/watch?v=XXXX output/my.pdf
 ```
 
-### Claude Code 스킬로 실행
+---
+
+### 방법 2: Claude Code 스킬 (API 키 불필요)
+
+[Claude Code](https://claude.ai/code)가 설치되어 있다면 API 키 없이 사용할 수 있습니다.
+Claude Code 자체가 마크다운 변환을 처리하므로 별도 API 키 설정이 필요 없습니다.
+
+#### 스킬 설치
+
+```bash
+# 저장소 클론
+git clone https://github.com/kmss6905/japan-news-generator.git
+cd japan-news-generator
+
+# 스킬 파일 설치
+mkdir -p ~/.claude/skills/japannews
+cp skill/SKILL.md ~/.claude/skills/japannews/SKILL.md
+```
+
+#### 스킬 실행
+
+Claude Code 세션에서 아래 명령어 한 줄로 PDF까지 자동 생성됩니다.
 
 ```
 /japannews https://www.youtube.com/watch?v=jOnVwFXTQG8
 ```
 
-> Claude Code를 사용 중이라면 `/japannews` 스킬 한 줄로 PDF까지 자동 생성됩니다.
+#### 방법 비교
+
+| | 방법 1 (Python 직접 실행) | 방법 2 (Claude Code 스킬) |
+|---|---|---|
+| API 키 | 필요 (`ANTHROPIC_API_KEY`) | 불필요 |
+| 실행 환경 | 터미널 | Claude Code 세션 |
+| 설치 난이도 | 보통 | 간단 |
+| 자동화 | 스크립트/크론 가능 | Claude Code 내에서만 |
 
 ---
 
@@ -96,6 +136,8 @@ japan-news-generator/
 │   ├── fetch_youtube.py     # Tool 0: YouTube 콘텐츠 수집
 │   ├── text_to_markdown.py  # Tool 1: 마크다운 변환 (Claude API)
 │   └── markdown_to_pdf.py   # Tool 2: PDF 변환
+├── skill/
+│   └── SKILL.md             # Claude Code 스킬 정의 파일
 ├── output/                  # 생성된 마크다운 + PDF 저장 (gitignore)
 ├── .env.example             # 환경변수 템플릿
 └── .gitignore
