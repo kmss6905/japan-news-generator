@@ -1,0 +1,15 @@
+# 환경변수 (API 키 포함)
+.env
+
+# 생성된 결과물
+output/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# macOS
+.DS_Store
