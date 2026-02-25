@@ -1,44 +1,50 @@
 """
-Google Drive 업로드 헬퍼
-- PDF 파일을 지정 폴더에 업로드
-- 링크 공유 권한 설정 (누구나 열람 가능)
-- 공유 URL 반환
+Google Drive 업로드 헬퍼 (OAuth2 사용자 인증)
+- 첫 실행 시 브라우저 인증 → token 저장
+- 이후 자동으로 token 재사용 (refresh)
 """
 
+import os
+import pickle
+
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
-from google.oauth2.service_account import Credentials
-import os
 
-SCOPES = [
-    "https://www.googleapis.com/auth/drive.file",
-]
+SCOPES = ["https://www.googleapis.com/auth/drive"]
+TOKEN_PATH = "config/oauth_token.pickle"
+CLIENT_SECRET_PATH = "config/oauth_client.json"
 
 
-def get_drive_service(credentials_path: str):
-    creds = Credentials.from_service_account_file(credentials_path, scopes=SCOPES)
+def get_drive_service():
+    creds = None
+
+    if os.path.exists(TOKEN_PATH):
+        with open(TOKEN_PATH, "rb") as f:
+            creds = pickle.load(f)
+
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_PATH, SCOPES)
+            creds = flow.run_local_server(port=0)
+
+        with open(TOKEN_PATH, "wb") as f:
+            pickle.dump(creds, f)
+
     return build("drive", "v3", credentials=creds)
 
 
 def upload_pdf(
-    credentials_path: str,
+    credentials_path: str,  # 하위 호환성 유지 (사용 안 함)
     pdf_path: str,
     folder_id: str = None,
     file_name: str = None,
 ) -> str:
-    """
-    PDF를 Google Drive에 업로드하고 공유 URL 반환.
-
-    Args:
-        credentials_path: 서비스 계정 JSON 키 경로
-        pdf_path: 업로드할 PDF 파일 경로
-        folder_id: 업로드 대상 Drive 폴더 ID (None이면 루트)
-        file_name: Drive에 저장될 파일명 (None이면 원본 파일명 사용)
-
-    Returns:
-        str: 공개 열람 가능한 Google Drive URL
-    """
-    service = get_drive_service(credentials_path)
+    service = get_drive_service()
 
     name = file_name or os.path.basename(pdf_path)
     metadata = {"name": name}
@@ -54,7 +60,6 @@ def upload_pdf(
 
     file_id = file["id"]
 
-    # 누구나 링크로 열람 가능하도록 권한 설정
     service.permissions().create(
         fileId=file_id,
         body={"type": "anyone", "role": "reader"},
