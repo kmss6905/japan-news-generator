@@ -1,6 +1,10 @@
 # 환경변수 (API 키 포함)
 .env
 
+# Google 서비스 계정 키 (절대 커밋 금지)
+config/credentials.json
+config/*.json
+
 # 생성된 결과물
 output/
 
