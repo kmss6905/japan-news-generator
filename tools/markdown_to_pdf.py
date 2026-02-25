@@ -4,9 +4,14 @@ Tool 2: Markdown → PDF 변환
 - weasyprint: HTML → PDF 변환 (일본어 폰트 지원)
 """
 
+import base64
+import io
 import os
+import re
 import subprocess
 import tempfile
+
+import qrcode
 from weasyprint import HTML, CSS
 
 CSS_STYLE = """
@@ -76,7 +81,44 @@ tr:hover td {
 """
 
 
-def markdown_to_pdf(markdown_text: str, output_path: str = "output/result.pdf") -> str:
+def _generate_qr_base64(url: str) -> str:
+    """URL을 QR 코드로 변환하여 base64 PNG 문자열 반환"""
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=4,
+        border=2,
+    )
+    qr.add_data(url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode("utf-8")
+
+
+def _inject_qr_into_html(html: str, url: str) -> str:
+    """HTML의 h1 태그를 QR 코드와 나란히 배치하는 flex 컨테이너로 교체"""
+    qr_b64 = _generate_qr_base64(url)
+    qr_img_tag = (
+        f'<img src="data:image/png;base64,{qr_b64}" '
+        f'alt="QR Code" style="width:80px;height:80px;flex-shrink:0;" />'
+    )
+
+    def replace_h1(m):
+        inner = m.group(1)
+        return (
+            '<div style="display:flex;align-items:center;gap:16px;'
+            'border-bottom:3px solid #1a237e;padding-bottom:10px;margin-bottom:6px;">'
+            f'<h1 style="border:none;padding:0;margin:0;flex:1;">{inner}</h1>'
+            f'{qr_img_tag}'
+            '</div>'
+        )
+
+    return re.sub(r'<h1[^>]*>(.*?)</h1>', replace_h1, html, count=1, flags=re.DOTALL)
+
+
+def markdown_to_pdf(markdown_text: str, output_path: str = "output/result.pdf", url: str = "") -> str:
     os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
 
     # 1단계: pandoc으로 markdown → HTML 변환
@@ -99,7 +141,15 @@ def markdown_to_pdf(markdown_text: str, output_path: str = "output/result.pdf") 
         check=True,
     )
 
-    # 2단계: weasyprint로 HTML → PDF 변환
+    # 2단계: URL이 있으면 HTML에 QR 코드 삽입
+    if url:
+        with open(html_path, encoding="utf-8") as f:
+            html_content = f.read()
+        html_content = _inject_qr_into_html(html_content, url)
+        with open(html_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
+
+    # 3단계: weasyprint로 HTML → PDF 변환
     HTML(filename=html_path).write_pdf(
         output_path,
         stylesheets=[CSS(string=CSS_STYLE)],
