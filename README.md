@@ -6,18 +6,36 @@ YouTube 일본어 뉴스 영상을 **PDF 학습 자료**로 자동 변환하는 
 
 ---
 
-## 결과물 예시
+## PDF 출력 예시
 
-| 일본어 문장 | 한국어 해석 |
-|---|---|
-| 今日の最低気温はマイナス13.2℃と、今シーズン最も低くなりました。 | 오늘 최저기온은 영하 13.2℃로, 이번 시즌 가장 낮아졌습니다. |
-| 日本では最長寒波の影響で各地で大雪への警戒が高まっています。 | 일본에서는 역대 최장 한파의 영향으로 각지에서 대설 경계가 높아지고 있습니다. |
+실제 생성된 샘플 PDF → **[examples/sample.pdf](examples/sample.pdf)**
 
-| 단어 (읽기) | 한국어 뜻 |
-|---|---|
-| 凍(こお)る | 얼다 |
-| 寒波(かんぱ) | 한파 |
-| 積雪(せきせつ) | 적설 |
+### PDF 구성
+
+PDF는 다음 구조로 생성됩니다.
+
+```
+┌─────────────────────────────────────────────────────┬──────────┐
+│ 영상 제목                                            │ QR Code  │
+│ 채널: ○○○  |  날짜: YYYY-MM-DD                      │ (YouTube │
+├─────────────────────────────────────────────────────┤  원본링크)│
+│ ## 00:00  섹션명                                    └──────────┘
+├───────────────────────────────┬─────────────────────────────────┤
+│ 일본어 문장                   │ 한국어 해석                     │
+├───────────────────────────────┼─────────────────────────────────┤
+│ 今日の最低気温はマイナス13.2℃ │ 오늘 최저기온은 영하 13.2℃로,  │
+│ と、今シーズン最も低くなりました。│ 이번 시즌 가장 낮아졌습니다.  │
+├───────────────────────────────┴─────────────────────────────────┤
+│ ## 어휘                                                         │
+├───────────────────────┬─────────────────────────────────────────┤
+│ 단어 (읽기)           │ 한국어 뜻                               │
+├───────────────────────┼─────────────────────────────────────────┤
+│ 凍(こお)る            │ 얼다                                    │
+│ 寒波(かんぱ)          │ 한파                                    │
+└───────────────────────┴─────────────────────────────────────────┘
+```
+
+**QR 코드**: PDF 제목 우측에 YouTube 원본 링크 QR 코드가 삽입되어, 인쇄 후에도 스마트폰으로 원본 영상을 바로 열 수 있습니다.
 
 ---
 
@@ -52,12 +70,12 @@ brew install pango glib
 
 방법 1 (Python 직접 실행) 사용 시:
 ```bash
-pip install anthropic youtube-transcript-api python-dotenv weasyprint
+pip install anthropic youtube-transcript-api python-dotenv weasyprint "qrcode[pil]"
 ```
 
 방법 2 (Claude Code 스킬) 사용 시 — anthropic 불필요:
 ```bash
-pip install youtube-transcript-api python-dotenv weasyprint
+pip install youtube-transcript-api python-dotenv weasyprint "qrcode[pil]"
 ```
 
 ### 환경변수 설정 (방법 1만 해당)
@@ -135,9 +153,11 @@ japan-news-generator/
 ├── tools/
 │   ├── fetch_youtube.py     # Tool 0: YouTube 콘텐츠 수집
 │   ├── text_to_markdown.py  # Tool 1: 마크다운 변환 (Claude API)
-│   └── markdown_to_pdf.py   # Tool 2: PDF 변환
+│   └── markdown_to_pdf.py   # Tool 2: PDF 변환 (QR 코드 포함)
 ├── skill/
 │   └── SKILL.md             # Claude Code 스킬 정의 파일
+├── examples/
+│   └── sample.pdf           # 생성 결과 샘플 PDF
 ├── output/                  # 생성된 마크다운 + PDF 저장 (gitignore)
 ├── .env.example             # 환경변수 템플릿
 └── .gitignore
