@@ -43,6 +43,18 @@ h2 {
     border-left: 4px solid #3949ab;
     margin-top: 28px;
     margin-bottom: 12px;
+    break-before: page;
+    page-break-before: always;
+}
+
+h2:first-of-type {
+    break-before: auto;
+    page-break-before: auto;
+}
+
+tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
 }
 
 p {
