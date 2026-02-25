@@ -55,9 +55,9 @@ brew install pango glib
 pip install anthropic youtube-transcript-api python-dotenv weasyprint
 ```
 
-방법 2 (Claude Code 스킬) 사용 시 — weasyprint, anthropic 불필요:
+방법 2 (Claude Code 스킬) 사용 시 — anthropic 불필요:
 ```bash
-pip install youtube-transcript-api weasyprint
+pip install youtube-transcript-api python-dotenv weasyprint
 ```
 
 ### 환경변수 설정 (방법 1만 해당)
