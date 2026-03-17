@@ -1,8 +1,10 @@
 {
+  "env": {
+    "DYLD_LIBRARY_PATH": "/opt/homebrew/lib"
+  },
   "permissions": {
     "allow": [
       "Bash(yt-dlp:*)",
-      "Bash(DYLD_LIBRARY_PATH=/opt/homebrew/lib python3:*)",
       "Bash(open:*)",
       "Bash(git init:*)",
       "Bash(git commit:*)",
@@ -10,8 +12,11 @@
       "Bash(gh repo:*)",
       "Bash(git add:*)",
       "Bash(git push:*)",
-      "Bash(python3:*)",
-      "Bash(pip3 install:*)"
+      "Bash(brew install:*)",
+      "Bash(/opt/homebrew/bin/python3:*)",
+      "Bash(DYLD_LIBRARY_PATH=/opt/homebrew/lib /opt/homebrew/bin/python3:*)",
+      "Bash(export PATH*)",
+      "Bash(gh pr:*)"
     ]
   }
 }

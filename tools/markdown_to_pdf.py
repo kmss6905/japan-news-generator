@@ -10,6 +10,8 @@ import os
 import re
 import subprocess
 import tempfile
+import urllib.request
+import urllib.error
 
 import qrcode
 from weasyprint import HTML, CSS
@@ -25,6 +27,27 @@ body {
     padding: 40px;
     color: #2c2c2c;
     background: white;
+}
+
+.ruby-group {
+    display: inline-block;
+    text-align: center;
+    vertical-align: baseline;
+    margin: 0 1px;
+}
+
+.ruby-text {
+    display: block;
+    font-size: 0.5em;
+    color: #555;
+    line-height: 1;
+    white-space: nowrap;
+    min-height: 0.7em;
+}
+
+.ruby-base {
+    display: block;
+    line-height: 1;
 }
 
 h1 {
@@ -81,6 +104,7 @@ td {
     border: 1px solid #c5cae9;
     padding: 8px 12px;
     vertical-align: top;
+    line-height: 2.2;
 }
 
 tr:nth-child(even) td {
@@ -109,6 +133,35 @@ def _generate_qr_base64(url: str) -> str:
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
+def _convert_furigana_to_ruby(html: str) -> str:
+    """漢字(よみ) 패턴을 inline-block 기반 후리가나로 변환"""
+    pattern = r'([一-龯々〆〇]+)\(([ぁ-んァ-ンー・]+)\)'
+    replacement = (
+        r'<span class="ruby-group">'
+        r'<span class="ruby-text">\2</span>'
+        r'<span class="ruby-base">\1</span>'
+        r'</span>'
+    )
+    return re.sub(pattern, replacement, html)
+
+
+def _fetch_thumbnail_base64(url: str) -> str | None:
+    """YouTube URL에서 video_id를 추출해 썸네일을 base64로 반환"""
+    m = re.search(r'(?:v=|youtu\.be/)([A-Za-z0-9_-]{11})', url)
+    if not m:
+        return None
+    video_id = m.group(1)
+    for quality in ('maxresdefault', 'hqdefault', 'mqdefault'):
+        thumb_url = f'https://img.youtube.com/vi/{video_id}/{quality}.jpg'
+        try:
+            with urllib.request.urlopen(thumb_url, timeout=5) as resp:
+                data = resp.read()
+            return base64.b64encode(data).decode('utf-8')
+        except urllib.error.URLError:
+            continue
+    return None
+
+
 def _inject_qr_into_html(html: str, url: str) -> str:
     """HTML의 h1 태그를 QR 코드와 나란히 배치하는 flex 컨테이너로 교체"""
     qr_b64 = _generate_qr_base64(url)
@@ -117,13 +170,28 @@ def _inject_qr_into_html(html: str, url: str) -> str:
         f'alt="QR Code" style="width:80px;height:80px;flex-shrink:0;" />'
     )
 
+    thumb_b64 = _fetch_thumbnail_base64(url)
+    if thumb_b64:
+        thumb_block = (
+            f'<a href="{url}" style="display:block;margin-top:10px;margin-bottom:4px;">'
+            f'<img src="data:image/jpeg;base64,{thumb_b64}" '
+            f'alt="YouTube thumbnail" '
+            f'style="width:100%;max-height:200px;object-fit:cover;'
+            f'border-radius:6px;border:1px solid #c5cae9;" />'
+            f'</a>'
+        )
+    else:
+        thumb_block = ''
+
     def replace_h1(m):
         inner = m.group(1)
         return (
-            '<div style="display:flex;align-items:center;gap:16px;'
-            'border-bottom:3px solid #1a237e;padding-bottom:10px;margin-bottom:6px;">'
+            '<div style="border-bottom:3px solid #1a237e;padding-bottom:10px;margin-bottom:6px;">'
+            '<div style="display:flex;align-items:center;gap:16px;">'
             f'<h1 style="border:none;padding:0;margin:0;flex:1;">{inner}</h1>'
             f'{qr_img_tag}'
+            '</div>'
+            f'{thumb_block}'
             '</div>'
         )
 
@@ -153,13 +221,14 @@ def markdown_to_pdf(markdown_text: str, output_path: str = "output/result.pdf", 
         check=True,
     )
 
-    # 2단계: URL이 있으면 HTML에 QR 코드 삽입
+    # 2단계: HTML 후처리 (QR 코드 삽입, 후리가나 변환)
+    with open(html_path, encoding="utf-8") as f:
+        html_content = f.read()
     if url:
-        with open(html_path, encoding="utf-8") as f:
-            html_content = f.read()
         html_content = _inject_qr_into_html(html_content, url)
-        with open(html_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
+    html_content = _convert_furigana_to_ruby(html_content)
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(html_content)
 
     # 3단계: weasyprint로 HTML → PDF 변환
     HTML(filename=html_path).write_pdf(

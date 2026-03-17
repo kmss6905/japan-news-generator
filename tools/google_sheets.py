@@ -22,9 +22,14 @@ STATUS_RUNNING = "실행중"
 STATUS_DONE = "완료"
 STATUS_ERROR = "오류"
 
-COL_URL = 1     # A
-COL_PDF = 2     # B
-COL_STATUS = 3  # C
+COL_URL = 1         # A: YouTube URL
+COL_TITLE = 2       # B: 영상 제목
+COL_CHANNEL = 3     # C: 채널명
+COL_DURATION = 4    # D: 영상 길이
+COL_UPLOAD = 5      # E: 업로드 날짜
+COL_REG_DATE = 6    # F: 등록 날짜
+COL_STATUS = 7      # G: 진행 여부
+COL_PDF = 8         # H: PDF 결과
 
 
 def get_client(credentials_path: str) -> gspread.Client:
@@ -59,6 +64,14 @@ def set_result(sheet, row: int, pdf_link: str):
     sheet.update_cell(row, COL_STATUS, STATUS_DONE)
 
 
+def append_result(sheet, url: str, title: str, channel: str, duration: str,
+                  upload_date: str, pdf_link: str):
+    """새 행을 기존 형식에 맞춰 추가"""
+    from datetime import date
+    reg_date = date.today().strftime("%Y-%m-%d")
+    sheet.append_row([url, title, channel, duration, upload_date, reg_date, STATUS_DONE, pdf_link])
+
+
 def set_error(sheet, row: int, message: str):
     sheet.update_cell(row, COL_PDF, f"오류: {message}")
     sheet.update_cell(row, COL_STATUS, STATUS_ERROR)
@@ -68,6 +81,6 @@ def ensure_header(sheet):
     """헤더 행이 없으면 자동 생성"""
     first_row = sheet.row_values(1)
     if not first_row or first_row[0] != "유튜브 링크":
-        sheet.update("A1:C1", [["유튜브 링크", "결과 PDF", "진행 여부"]])
-        # 헤더 굵게
-        sheet.format("A1:C1", {"textFormat": {"bold": True}})
+        sheet.update("A1:H1", [["유튜브 링크", "영상 제목", "채널명", "영상 길이",
+                                 "업로드 날짜", "등록 날짜", "진행 여부", "PDF 결과"]])
+        sheet.format("A1:H1", {"textFormat": {"bold": True}})

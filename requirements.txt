@@ -1,0 +1,17 @@
+# Core
+anthropic>=0.84.0
+python-dotenv>=1.0.0
+
+# YouTube
+yt-dlp>=2024.1.0
+youtube-transcript-api>=0.6.0
+
+# PDF generation
+weasyprint>=61.0
+qrcode[pil]>=7.4.0
+
+# Google Sheets / Drive
+gspread>=6.0.0
+google-auth>=2.0.0
+google-auth-oauthlib>=1.0.0
+google-api-python-client>=2.0.0

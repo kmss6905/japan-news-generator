@@ -36,10 +36,15 @@ def fetch_youtube_content(url: str) -> dict:
         print(f"자막 가져오기 실패 (무시하고 계속): {e}")
         transcript_text = ""
 
+    duration_sec = data.get("duration", 0) or 0
+    minutes, seconds = divmod(int(duration_sec), 60)
+    duration_str = f"{minutes}:{seconds:02d}"
+
     return {
         "title": data.get("title", ""),
         "channel": data.get("channel", ""),
         "upload_date": data.get("upload_date", ""),
+        "duration": duration_str,
         "description": data.get("description", ""),
         "transcript": transcript_text,
     }
